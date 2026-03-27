@@ -52,11 +52,27 @@ uv run pytest
 
 ## Available Endpoints
 
-- `POST /exercises` - create an exercise
+- `POST /exercises` - create an exercise, returns `201 Created`
 - `GET /exercises` - list all exercises
 - `GET /exercises/{id}` - get one exercise by ID
 - `PUT /exercises/{id}` - replace an existing exercise
-- `DELETE /exercises/{id}` - delete an exercise
+- `DELETE /exercises/{id}` - delete an exercise, returns `204 No Content`
+
+Missing exercise IDs return `404 Not Found` for `GET`, `PUT`, and `DELETE`.
+
+## Example Request Body
+
+```json
+{
+  "name": "Squat",
+  "primary_muscles": ["quadriceps"],
+  "secondary_muscles": ["glutes", "hamstrings"],
+  "equipment": "barbell",
+  "difficulty": "beginner",
+  "instructions": "Keep your chest up and drive through your feet.",
+  "media_url": "https://example.com/squat"
+}
+```
 
 ## Notes
 

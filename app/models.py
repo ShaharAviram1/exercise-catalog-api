@@ -6,7 +6,6 @@ from pydantic import AnyUrl, BaseModel, Field, field_validator, model_validator
 class MuscleGroup(str, Enum):
     chest = "chest"
     back = "back"
-    legs = "legs"
     shoulders = "shoulders"
     biceps = "biceps"
     triceps = "triceps"
@@ -14,6 +13,8 @@ class MuscleGroup(str, Enum):
     glutes = "glutes"
     calves = "calves"
     forearms = "forearms"
+    quadriceps = "quadriceps"
+    hamstrings = "hamstrings"
 
 
 class Equipment(str, Enum):

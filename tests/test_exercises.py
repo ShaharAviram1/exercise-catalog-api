@@ -5,6 +5,9 @@ from app.repository import ExerciseRepository
 from app.routes import get_repository
 
 
+NOT_FOUND_DETAIL = "Exercise not found"
+
+
 def exercise_payload(**overrides):
     payload = {
         "name": "Push Up",
@@ -25,10 +28,15 @@ def create_test_client() -> TestClient:
     return TestClient(app)
 
 
-def test_create_valid_exercise_successfully():
-    client = create_test_client()
+def request_with_fresh_client(method: str, path: str, **kwargs):
+    with create_test_client() as client:
+        response = getattr(client, method)(path, **kwargs)
+    app.dependency_overrides.clear()
+    return response
 
-    response = client.post("/exercises", json=exercise_payload())
+
+def test_create_valid_exercise_successfully():
+    response = request_with_fresh_client("post", "/exercises", json=exercise_payload())
 
     assert response.status_code == 201
     data = response.json()
@@ -38,9 +46,8 @@ def test_create_valid_exercise_successfully():
 
 
 def test_reject_invalid_muscle_group():
-    client = create_test_client()
-
-    response = client.post(
+    response = request_with_fresh_client(
+        "post",
         "/exercises",
         json=exercise_payload(primary_muscles=["wings"]),
     )
@@ -49,25 +56,20 @@ def test_reject_invalid_muscle_group():
 
 
 def test_reject_blank_name():
-    client = create_test_client()
-
-    response = client.post("/exercises", json=exercise_payload(name="   "))
+    response = request_with_fresh_client("post", "/exercises", json=exercise_payload(name="   "))
 
     assert response.status_code == 422
 
 
 def test_reject_empty_primary_muscles():
-    client = create_test_client()
-
-    response = client.post("/exercises", json=exercise_payload(primary_muscles=[]))
+    response = request_with_fresh_client("post", "/exercises", json=exercise_payload(primary_muscles=[]))
 
     assert response.status_code == 422
 
 
 def test_reject_overlap_between_primary_and_secondary_muscles():
-    client = create_test_client()
-
-    response = client.post(
+    response = request_with_fresh_client(
+        "post",
         "/exercises",
         json=exercise_payload(primary_muscles=["chest"], secondary_muscles=["chest"]),
     )
@@ -75,12 +77,29 @@ def test_reject_overlap_between_primary_and_secondary_muscles():
     assert response.status_code == 422
 
 
-def test_get_all_exercises():
-    client = create_test_client()
-    client.post("/exercises", json=exercise_payload())
-    client.post("/exercises", json=exercise_payload(name="Squat", primary_muscles=["legs"], secondary_muscles=["glutes"]))
+def test_reject_invalid_media_url():
+    response = request_with_fresh_client(
+        "post",
+        "/exercises",
+        json=exercise_payload(media_url="not-a-valid-url"),
+    )
 
-    response = client.get("/exercises")
+    assert response.status_code == 422
+
+
+def test_get_all_exercises():
+    with create_test_client() as client:
+        client.post("/exercises", json=exercise_payload())
+        client.post(
+            "/exercises",
+            json=exercise_payload(
+                name="Squat",
+                primary_muscles=["quadriceps"],
+                secondary_muscles=["glutes", "hamstrings"],
+            ),
+        )
+        response = client.get("/exercises")
+    app.dependency_overrides.clear()
 
     assert response.status_code == 200
     data = response.json()
@@ -90,38 +109,36 @@ def test_get_all_exercises():
 
 
 def test_get_one_exercise_by_id():
-    client = create_test_client()
-    create_response = client.post("/exercises", json=exercise_payload())
-
-    exercise_id = create_response.json()["id"]
-    response = client.get(f"/exercises/{exercise_id}")
+    with create_test_client() as client:
+        create_response = client.post("/exercises", json=exercise_payload())
+        exercise_id = create_response.json()["id"]
+        response = client.get(f"/exercises/{exercise_id}")
+    app.dependency_overrides.clear()
 
     assert response.status_code == 200
     assert response.json()["name"] == "Push Up"
 
 
 def test_return_404_for_non_existent_id():
-    client = create_test_client()
-
-    response = client.get("/exercises/999")
+    response = request_with_fresh_client("get", "/exercises/999")
 
     assert response.status_code == 404
-    assert response.json()["detail"] == "Exercise not found"
+    assert response.json()["detail"] == NOT_FOUND_DETAIL
 
 
 def test_update_existing_exercise():
-    client = create_test_client()
-    create_response = client.post("/exercises", json=exercise_payload())
-    exercise_id = create_response.json()["id"]
-
-    response = client.put(
-        f"/exercises/{exercise_id}",
-        json=exercise_payload(
-            name="Incline Push Up",
-            difficulty="intermediate",
-            instructions="Place your hands on an elevated surface.",
-        ),
-    )
+    with create_test_client() as client:
+        create_response = client.post("/exercises", json=exercise_payload())
+        exercise_id = create_response.json()["id"]
+        response = client.put(
+            f"/exercises/{exercise_id}",
+            json=exercise_payload(
+                name="Incline Push Up",
+                difficulty="intermediate",
+                instructions="Place your hands on an elevated surface.",
+            ),
+        )
+    app.dependency_overrides.clear()
 
     assert response.status_code == 200
     data = response.json()
@@ -130,25 +147,36 @@ def test_update_existing_exercise():
     assert data["difficulty"] == "intermediate"
 
 
-def test_delete_existing_exercise():
-    client = create_test_client()
-    create_response = client.post("/exercises", json=exercise_payload())
-    exercise_id = create_response.json()["id"]
+def test_update_non_existent_exercise():
+    response = request_with_fresh_client(
+        "put",
+        "/exercises/999",
+        json=exercise_payload(name="Updated Push Up"),
+    )
 
-    delete_response = client.delete(f"/exercises/{exercise_id}")
-    get_response = client.get(f"/exercises/{exercise_id}")
+    assert response.status_code == 404
+    assert response.json()["detail"] == NOT_FOUND_DETAIL
+
+
+def test_delete_existing_exercise():
+    with create_test_client() as client:
+        create_response = client.post("/exercises", json=exercise_payload())
+        exercise_id = create_response.json()["id"]
+        delete_response = client.delete(f"/exercises/{exercise_id}")
+        get_response = client.get(f"/exercises/{exercise_id}")
+    app.dependency_overrides.clear()
 
     assert delete_response.status_code == 204
     assert get_response.status_code == 404
 
 
 def test_delete_same_exercise_twice_second_time_should_fail():
-    client = create_test_client()
-    create_response = client.post("/exercises", json=exercise_payload())
-    exercise_id = create_response.json()["id"]
-
-    first_delete = client.delete(f"/exercises/{exercise_id}")
-    second_delete = client.delete(f"/exercises/{exercise_id}")
+    with create_test_client() as client:
+        create_response = client.post("/exercises", json=exercise_payload())
+        exercise_id = create_response.json()["id"]
+        first_delete = client.delete(f"/exercises/{exercise_id}")
+        second_delete = client.delete(f"/exercises/{exercise_id}")
+    app.dependency_overrides.clear()
 
     assert first_delete.status_code == 204
     assert second_delete.status_code == 404

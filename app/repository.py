@@ -7,7 +7,7 @@ class ExerciseRepository:
         self._next_id = 1
 
     def list_all(self) -> list[Exercise]:
-        return list(self._exercises.values())
+        return [self._exercises[exercise_id] for exercise_id in sorted(self._exercises)]
 
     def get(self, exercise_id: int) -> Exercise | None:
         return self._exercises.get(exercise_id)
