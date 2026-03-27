@@ -54,11 +54,9 @@ uv run pytest
 
 - `POST /exercises` - create an exercise, returns `201 Created`
 - `GET /exercises` - list all exercises
-- `GET /exercises/{id}` - get one exercise by ID
-- `PUT /exercises/{id}` - replace an existing exercise
-- `DELETE /exercises/{id}` - delete an exercise, returns `204 No Content`
-
-Missing exercise IDs return `404 Not Found` for `GET`, `PUT`, and `DELETE`.
+- `GET /exercises/{id}` - get one exercise by ID, returns `404 Not Found` if the exercise does not exist
+- `PUT /exercises/{id}` - fully replace an existing exercise, returns `404 Not Found` if the exercise does not exist
+- `DELETE /exercises/{id}` - delete an exercise, returns `204 No Content`, or `404 Not Found` if the exercise does not exist
 
 ## Example Request Body
 

@@ -1,4 +1,4 @@
-from app.models import Exercise, ExerciseCreateUpdate
+from app.models import Exercise, ExerciseInput
 
 
 class ExerciseRepository:
@@ -12,13 +12,13 @@ class ExerciseRepository:
     def get(self, exercise_id: int) -> Exercise | None:
         return self._exercises.get(exercise_id)
 
-    def create(self, exercise_data: ExerciseCreateUpdate) -> Exercise:
+    def create(self, exercise_data: ExerciseInput) -> Exercise:
         exercise = Exercise(id=self._next_id, **exercise_data.model_dump())
         self._exercises[self._next_id] = exercise
         self._next_id += 1
         return exercise
 
-    def update(self, exercise_id: int, exercise_data: ExerciseCreateUpdate) -> Exercise | None:
+    def update(self, exercise_id: int, exercise_data: ExerciseInput) -> Exercise | None:
         if exercise_id not in self._exercises:
             return None
 

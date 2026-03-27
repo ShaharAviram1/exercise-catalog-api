@@ -56,7 +56,7 @@ class ExerciseBase(BaseModel):
         return self
 
 
-class ExerciseCreateUpdate(ExerciseBase):
+class ExerciseInput(ExerciseBase):
     pass
 
 
