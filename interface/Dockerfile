@@ -8,7 +8,9 @@ RUN pip install --no-cache-dir uv
 COPY pyproject.toml uv.lock ./
 RUN uv sync --frozen --no-install-project --no-dev
 
-COPY app.py client.py coach.py export.py filters.py ./
+# Copy all interface Python modules. The .dockerignore excludes .venv,
+# __pycache__, tests, *.db, and .env so only source modules are included.
+COPY *.py ./
 
 EXPOSE 8501
 CMD ["uv", "run", "--no-sync", "streamlit", "run", "app.py", \
